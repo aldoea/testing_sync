@@ -154,8 +154,6 @@ async function main() {
         console.log('-> Consulta transacciones Normal');
         let normalTranssactions = await getTransactions(token, {id_credential: id_credentialNormal});
         debug(normalTranssactions);
-        // Crear webhook
-        console.log('-> Crear webhook');
         // Eliminar Credenciales Normal
         console.log('-> Elimina credenciales normal');
         resp = await deleteCredential(token, id_credentialNormal)
@@ -166,12 +164,13 @@ async function main() {
         payload = {}; 
         payload['id_site'] = siteSAT.id_site;
         credentials = {};
-        credentials[siteSAT.credentials[0].name] = 'test';
+        credentials[siteSAT.credentials[0].name] = 'ACM010101ABC';
         credentials[siteSAT.credentials[1].name] = 'test';
         payload['credentials'] = credentials;
         credenciales = await createCredentials(token, payload);
         debug(credenciales);
         let id_credentialSAT = credenciales.id_credential;
+        await sleep(30000);
         // Consultar Credenciales SAT
         console.log('-> Consulta credenciales SAT');
         checkCredentials = await getCredentials(token);
@@ -190,7 +189,8 @@ async function main() {
         let satTranssactions = await getTransactions(token, {id_credential: id_credentialSAT});
         debug(satTranssactions);
         // Consulta archivos adjuntos SAT
-
+        let attachment = satTranssactions[0].attachments;
+        debug(attachment);
         // Descarga archivos adjuntos SAT
 
         // Eliminar Credenciales SAT
