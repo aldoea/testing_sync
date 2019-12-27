@@ -72,7 +72,6 @@ exports.run = function run(AUTH, route, payload, method) {
                 resolve(result);
             }
         } catch (error) {
-            console.error(error);
             console.trace(error);
             reject(error)
         }

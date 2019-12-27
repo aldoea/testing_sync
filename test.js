@@ -106,6 +106,24 @@ async function downloadAttachment(token, url) {
     return documentAttached;
 }
 
+// CREAR WEBHOOK
+async function createWebhook(payload) {
+    let resp = Sync.run({api_key: PG_APIKEY}, '/webhooks', payload, 'POST');
+    return resp;
+}
+
+// CONSULTAR WEBHOOKS
+async function getWebhooks() {
+    let resp = Sync.run({api_key: PG_APIKEY}, '/webhooks', {}, 'GET');
+    return resp;
+}
+
+// ELIMINAR WEBHOOK
+async function deleteWebhook(id_webhook) {
+    let resp = Sync.run({api_key: PG_APIKEY}, `/webhooks/${id_webhook}`, {}, 'DELETE');
+    return resp;
+}
+
 async function main() {
     try {
         // Consultar un usuario por id_externo
@@ -166,12 +184,8 @@ async function main() {
         //debug(accounts);
         // Consulta transacciones Normal
         console.log('-> Consulta transacciones Normal');
-        let normalTranssactions = await getTransactions(token, {id_credential: id_credentialNormal});
-        //debug(normalTranssactions);
-        // Eliminar Credenciales Normal
-        console.log('-> Elimina credenciales normal');
-        resp = await deleteCredential(token, id_credentialNormal)
-        debug(resp);
+        let normalTranssactions = await getTransactions(token, {id_credential: id_credentialNormal, limit: 5});
+        debug(normalTranssactions);
         // Crear credenciales SAT
         console.log('-> Crear credenciales SAT');
         let siteSAT = catalogs[0].sites[11];
@@ -213,6 +227,28 @@ async function main() {
         let attachment = satTranssactions[0].attachments[0];
         let documentAttached = await downloadAttachment(token, attachment.url);
         console.log(documentAttached);
+        // Crear Webhook
+        console.log('-> Crear Webhook');
+        let webhook_endpoint = `${WEBHOOK_URL}/webhook`;
+        payload = {
+            url: webhook_endpoint, 
+            events: ["credential_create","credential_update","refresh"]
+        };
+        resp = await createWebhook(payload);
+        debug(resp);
+        let id_webhook = resp.id_webhook;
+        // Consultar Webhooks
+        console.log('-> Consultar webhooks')
+        resp = await getWebhooks();
+        debug(resp);
+        await sleep(60000);
+        // Eliminar Webhook
+        resp = await deleteWebhook(id_webhook);
+        debug(resp);
+        // Eliminar Credenciales Normal
+        console.log('-> Elimina credenciales normal');
+        resp = await deleteCredential(token, id_credentialNormal)
+        debug(resp);
         // Eliminar Credenciales SAT
         console.log('-> Elimina credenciales SAT');
         resp = await deleteCredential(token, id_credentialSAT)
@@ -226,8 +262,7 @@ async function main() {
         resp = await deleteUser(id_user);
         debug(resp);
     } catch (error) {
-        console.error(error);
-        console.error(prettyJs(JSON.stringify(error)));
+        console.trace(error);
         process.exit();
     }
 }
