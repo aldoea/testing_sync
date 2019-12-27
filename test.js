@@ -3,6 +3,7 @@ require('dotenv').config();
 const prettyJs = require('pretty-js');
 const Sync = require('./sync');
 const PG_APIKEY = process.env.PG_APIKEY;
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 function sleep(ms){
     return new Promise(resolve=>{
@@ -92,10 +93,23 @@ async function getTransactions(token, payload) {
     let accounts = Sync.run({token: token}, '/transactions', payload, 'GET');
     return accounts;
 }
+
+// CONSULTA DOCUMENTOS LIGADOS A LA CUENTA
+async function getAttachments(token, payload) {
+    let attachments = Sync.run({token: token}, '/attachments', payload, 'GET');
+    return attachments;
+}
+
+// DESCARGA DOCUMENTO
+async function downloadAttachment(token, url) {
+    let documentAttached = Sync.run({token: token}, url, {}, 'GET');
+    return documentAttached;
+}
+
 async function main() {
     try {
         // Consultar un usuario por id_externo
-        console.log('->Consulta usuario');
+        console.log('-> Consulta usuario');
         let users = await getUsers({id_external: 'EOOA989602'});
         debug(users);
         // Crear un usuario nuevo
@@ -149,11 +163,11 @@ async function main() {
         // Consultar cuentas normal
         console.log('-> Consulta cuentas normal');
         let accounts = await getAccounts(token, {id_credential: id_credentialNormal});
-        debug(accounts);
+        //debug(accounts);
         // Consulta transacciones Normal
         console.log('-> Consulta transacciones Normal');
         let normalTranssactions = await getTransactions(token, {id_credential: id_credentialNormal});
-        debug(normalTranssactions);
+        //debug(normalTranssactions);
         // Eliminar Credenciales Normal
         console.log('-> Elimina credenciales normal');
         resp = await deleteCredential(token, id_credentialNormal)
@@ -186,13 +200,19 @@ async function main() {
         debug(accounts);
         // Consulta transacciones SAT
         console.log('-> Consulta transacciones SAT');
-        let satTranssactions = await getTransactions(token, {id_credential: id_credentialSAT});
-        debug(satTranssactions);
-        // Consulta archivos adjuntos SAT
-        let attachment = satTranssactions[0].attachments;
-        debug(attachment);
+        let satTranssactions = await getTransactions(token, {id_credential: id_credentialSAT, limit: 5});
+        console.log('SAT TRANSACTIONS length :', satTranssactions.length);
+        debug(satTranssactions[0]);
+        // Consulta todos los archivos adjuntos SAT
+        console.log('-> Consultar todos los archivos adjuntos');
+        let allAttachments = await getAttachments(token, {id_credential: id_credentialSAT, limit: 10});
+        console.log('SAT ATTACHMENTS length :', allAttachments.length);
+        debug(allAttachments);
         // Descarga archivos adjuntos SAT
-
+        console.log('-> Descargar archivos adjuntos SAT');
+        let attachment = satTranssactions[0].attachments[0];
+        let documentAttached = await downloadAttachment(token, attachment.url);
+        console.log(documentAttached);
         // Eliminar Credenciales SAT
         console.log('-> Elimina credenciales SAT');
         resp = await deleteCredential(token, id_credentialSAT)

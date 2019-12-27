@@ -62,12 +62,18 @@ exports.run = function run(AUTH, route, payload, method) {
             }
             options['headers'] = headers;
             // AWAIT RESPONSE 
-            let result = JSON.parse(await request(options));
-            // RESOLVE RESPONSE
-            let response = (Array.isArray(result.response) || typeof result.response !== "boolean") ? result.response : result;
-            resolve(response); 
+            let result = await request(options);
+            if(!result.startsWith('<?xml')) {
+                result = JSON.parse(result);
+                // RESOLVE RESPONSE
+                let response = (Array.isArray(result.response) || typeof result.response !== "boolean") ? result.response : result;
+                resolve(response); 
+            }else {
+                resolve(result);
+            }
         } catch (error) {
             console.error(error);
+            console.trace(error);
             reject(error)
         }
     });
