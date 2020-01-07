@@ -12,17 +12,17 @@
 ### **Sync** recupera información de las cuentas y sus transacciones, de instituciones financieras autorizados por el usuario, y lo regresa a soluciones de terceros en un formato organizado, muy fácil de utilizar.
 
 ## Opciones de instalación
----
+
 1. __Instalar mediante NPM:__
-  + ```bash
-    npm install sync-paybook
-    ```
+```bash
+  npm install sync-paybook
+```
 2. __Descargar la librería:__
-  + ```bash
-    git clone https://github.com/Paybook/sync-rest.git 
-    ```
+```bash
+  git clone https://github.com/Paybook/sync-rest.git 
+```
 ## Requerimientos
----
+
 1. **API Key:**
 
   Cuando creamos una cuenta de [Paybook Sync] se nos proporcionó una API Key, por ejemplo:
@@ -31,7 +31,7 @@
   ```
   Este API key lo podemos visualizar como la contraseña o llave de acceso a los servicios de [Paybook Sync]. Únicamente a través de ella podremos consultar la información de las instituciones que sincronicemos.
 ## Implementación
----
+
 La librería incluye los metodos:
 1. `Sync.auth()`
   + _Nota: Para realizar la autenticación es necesario tener creado un usuario, de donde se obtiene el id_user, vease este [ejemplo]()._
@@ -59,7 +59,7 @@ let response = await Sync.run(
 **_¡Importante!:_** No escribas tu API KEY directamente en tu código o en texto plano, ya que es una mala práctica de seguridad, te recomiendo que revises [la libreria Dotenv][dotenv].
 
 ## Autenticación
---- 
+
 ### Obtener un Token de sesión:
 ```javascript
   let token = await Sync.auth(
@@ -74,7 +74,7 @@ let response = await Sync.run(
   // #Imprime: { token: "d5b33dcf996ac34fd2fa56782d72bff6"}
 ```
 ## Recursos y Ejemplos
----
+
 ### Usuarios:
 <table>
 <thead>
