@@ -77,11 +77,11 @@ let response = await Sync.run(
 <table>
 <thead>
   <tr>
-    <th>Recurso</th>
+    <th width="30%">Recurso</th>
     <th>Acción</th>
     <th>Método</th>
     <th>Autenticación</th>
-    <th>Parametros</th>
+    <th width="40%">Parametros</th>
   </tr>
 </thead>
 <tbody>
