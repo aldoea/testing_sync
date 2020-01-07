@@ -1,5 +1,7 @@
 <center>
 
+![Paybook-logo][logo]
+
 ![node-v11.5.0][node-badge]
 ![npm-6.7.0][npm-badge]
 
@@ -7,7 +9,7 @@
 
 # SYNC NODE LIB
 
-### **Sync** recupera información de las cuentas y sus transacciones, de instituciones financieras autorizados por el usuario, y lo regresa a soluciones de terceros en un formato organizado, muy fácil de utilizar.
+**Sync** recupera información de las cuentas y sus transacciones, de instituciones financieras autorizados por el usuario, y lo regresa a soluciones de terceros en un formato organizado, muy fácil de utilizar.
 
 ## Opciones de instalación
 
@@ -32,7 +34,7 @@
 
 La librería incluye los metodos:
 1. `Sync.auth()`
-  + _Nota: Para realizar la autenticación es necesario tener creado un usuario, de donde se obtiene el id_user, vease este [ejemplo]()._
+  + _Nota: Para realizar la autenticación es necesario tener creado un usuario, de donde se obtiene el **id_user**, vease este [ejemplo]()._
 2. `Sync.run()` _Vease el apartado de [recursos]() disponibles_
 
 
@@ -77,11 +79,11 @@ let response = await Sync.run(
 <table>
 <thead>
   <tr>
-    <th width="20%">Recurso</th>
-    <th width="10%">Acción</th>
-    <th width="10%">Método</th>
-    <th width="10%">Autenticación</th>
-    <th width="50%">Parametros</th>
+    <th>Recurso</th>
+    <th>Acción</th>
+    <th>Método</th>
+    <th>Autenticación</th>
+    <th>Parametros</th>
   </tr>
 </thead>
 <tbody>
@@ -111,20 +113,20 @@ let response = await Sync.run(
   <tr>
     <td>Crear</td>
     <td>POST</td>
-  <td>
+  <td rowspan="2">
 
-|Campo|Tipo|Descripción|
-|:-----|:-----:|:----------|
-|id_external (opcional)|String|ID externo, este campo puede ser null y puede usarse para llevar dar seguimiento al usuario con un ID externo.|
-|name|String|Nombre del usuario.|
-
+```javascript
+{
+  "id_external", // Opcional
+  "name"
+}
+```
   </td>
   </tr>
   <tr>
     <td rowspan="2">/users/:id_user</td>
     <td>Actualizar</td>
     <td>PUT</td>
-    <td>{}</td>
   </tr>
   <tr>
     <td>Eliminar</td>
@@ -175,10 +177,10 @@ let user = await Sync.run(
 console.log(users);
 ```
 ## Entorno
----
+
 
 ## Enlaces de interes
----
+
 
  [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
