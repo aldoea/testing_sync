@@ -1,7 +1,5 @@
 <center>
 
-![Paybook-logo][logo]
-
 ![node-v11.5.0][node-badge]
 ![npm-6.7.0][npm-badge]
 
@@ -79,7 +77,6 @@ let response = await Sync.run(
 <table>
 <thead>
   <tr>
-    <th></th>
     <th>Recurso</th>
     <th>Acción</th>
     <th>Método</th>
@@ -89,7 +86,6 @@ let response = await Sync.run(
 </thead>
 <tbody>
   <tr>
-    <td rowspan="4">Usuario</td>
     <td rowspan="2">/users</td>
     <td>Consultar</td>
     <td>GET</td>
@@ -101,7 +97,7 @@ let response = await Sync.run(
 </td>
 <td>
 
-```json
+```javascript
 {
     "id_external", // Opcional
     "fields", // Opcional
