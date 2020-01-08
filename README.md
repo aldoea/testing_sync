@@ -75,6 +75,8 @@ let response = await Sync.run(
 ```
 ## Recursos y Ejemplos
 
+Puedes consultar más información acerca de los parametros de cada recurso en la [documentación oficial de paybook][sync-doc-endpoint].
+
 ### Usuarios:
 <table>
 <thead>
@@ -144,7 +146,6 @@ let users = await Sync.run(
   {}, 
   'GET'
 );
-console.log(users);
 ```
 Devuelve:
 ```json
@@ -154,19 +155,19 @@ Devuelve:
       "id_external": "ELSAN090909",
       "name": "El Santo",
       "dt_create": 1576556996,
-      "dt_modify": 1576557005
+      "dt_modify": null
   },
   {
       "id_user": "5e061a673e0acd77bf7d3c7b",
       "id_external": "BLDM140389",
       "name": "Blue Demon",
       "dt_create": 1577458279,
-      "dt_modify": 1577458279
+      "dt_modify": null
   }
 ]
 ```
 
-### Consultar un usuario en especifico
+#### Consultar un usuario en especifico
 ```javascript
 let user = await Sync.run(
   {api_key: API_KEY}, 
@@ -174,8 +175,87 @@ let user = await Sync.run(
   {id_external: 'ELSAN090909'}, 
   'GET'
 );
-console.log(users);
 ```
+Devuelve:
+```json
+[
+  {
+      "id_user": "5df859c4a7a6442757726ef4",
+      "id_external": "ELSAN090909",
+      "name": "El Santo",
+      "dt_create": 1576556996,
+      "dt_modify": null
+  }
+]
+```
+#### Crear un Usuario
+```javascript
+let user = await Sync.run(
+  {api_key: API_KEY}, 
+  '/users', 
+  {
+    id_external: 'MIST030794',
+    name: 'Rey Misterio'
+  }, 
+  'POST'
+);
+let {id_user} = user;
+```
+Devuleve:
+```json
+{
+    "id_user": "5e06694b93f4a91cb218f28f",
+    "id_external": "MIST030794",
+    "name": "Rey Misterio",
+    "dt_create": 1577478475,
+    "dt_modify": null
+}
+```
+#### Actualizar un Usuario
+
+```javascript
+let user = await Sync.run(
+  {api_key: API_KEY}, 
+  `/users/${id_user}`, 
+  {name: 'El Santo Jr.'}, 
+  'PUT'
+);
+```
+Devuelve:
+```json
+  {
+      "id_user": "5df859c4a7a6442757726ef4",
+      "id_external": "ELSAN090909",
+      "name": "El Santo Jr.",
+      "dt_create": 1576556996,
+      "dt_modify": 1576557005
+  }
+```
+
+#### Eliminar un usuario
+>_**Nota:** Esto eliminará toda la información del usuario._
+
+```javascript
+let response = Sync.run(
+  {api_key: API_KEY}, 
+  `/users/${id_user}`, 
+  {}, 
+  'DELETE'
+);
+```
+Devuelve:
+```json
+{
+  "rid": "d337e963-680f-4009-85dc-ab439bfdc771",
+  "code": 200,
+  "errors": null,
+  "status": true,
+  "message": null,
+  "response": true
+}
+```
+
+
 ## Entorno
 
 
@@ -185,7 +265,8 @@ console.log(users);
  [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
 [Paybook Sync]: <https://www.paybook.com/sync/es/>
-[sync-doc]: <https://www.paybook.com/sync/es/docs/intro>
+[sync-doc-intro]: <https://www.paybook.com/sync/es/docs/intro>
+[sync-doc-endpoint]: <https://www.paybook.com/sync/es/docs#es&endpoints.users>
 [dotenv]: <https://www.npmjs.com/package/dotenv>
 [request]: <github.com/request/request>
 [logo]: /images/syncLogo.svg
