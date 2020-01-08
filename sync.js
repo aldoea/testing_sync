@@ -55,7 +55,7 @@ exports.run = function run(AUTH, route, payload, method) {
                 case 'DELETE':
                     headers['X-Http-Method-Override'] = 'DELETE';
                     break;
-                case 'UPDATE':
+                case 'PUT':
                     headers['X-Http-Method-Override'] = 'PUT';
                     options['body'] = JSON.stringify(payload);
                     break;

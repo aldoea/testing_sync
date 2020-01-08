@@ -25,7 +25,7 @@ async function createUser(payload) {
 
 // ACTUALIZAR USUARIO
 async function updateUser(id_user, payload) {
-    let user = Sync.run({api_key: PG_APIKEY}, `/users/${id_user}`, payload, 'UPDATE');
+    let user = Sync.run({api_key: PG_APIKEY}, `/users/${id_user}`, payload, 'PUT');
     return user;
 }
 
