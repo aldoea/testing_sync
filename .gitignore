@@ -27,9 +27,9 @@ __pycache__/
 *$py.class
 
 # PHP
-php/vendor/*
-php/composer.lock
-php/composer.phar
+vendor/*
+composer.lock
+composer.phar
 
 
 #VSCode
