@@ -1,6 +1,5 @@
 <?php
 namespace Paybook\Sync;
-require(__DIR__."/../vendor/autoload.php");
 use Requests;
 use Exception;
 define('SYNC_API_URL', "https://sync.paybook.com/v1");

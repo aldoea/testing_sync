@@ -23,8 +23,6 @@ $tmp_id_user = null;
 function main()
 {
     try {
-        var_dump(class_exists('Paybook\\Sync\\Sync'));
-        Sync::strictAuth();
         // Consultar usarios
         $response = Sync::run(
             array("api_key" => API_KEY),
