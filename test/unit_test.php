@@ -1,18 +1,19 @@
 <?php
 /*
 Uncomment this to run it as external library:
-*/
-// require __DIR__.'/vendor/autoload.php';
-// --------
+// -------- */
+require __DIR__.'/../vendor/autoload.php';
 
 /*
 Uncomment this to run it with source code:
-*/
 $source_dir = __DIR__.'/../src/';
 require $source_dir.'sync.php';
-define('API_KEY', '<your_api_key_here>');
+*/
+define('API_KEY', '<api_key>');
 define('WEBHOOK_ENDPOINT', '<your_webhook_endpoint>');
 // --------
+
+use Paybook\Sync\Sync;
 
 function prettyJson($data) {
     echo json_encode($data, JSON_PRETTY_PRINT).PHP_EOL;
@@ -22,8 +23,10 @@ $tmp_id_user = null;
 function main()
 {
     try {
+        var_dump(class_exists('Paybook\\Sync\\Sync'));
+        Sync::strictAuth();
         // Consultar usarios
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             '/users', 
             array(), 
@@ -33,7 +36,7 @@ function main()
         print_r($response);
 
         // Consultar un usuario en especifico
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             '/users', 
             array("id_user"=>'5df859c4a7a6442757726ef4'), 
@@ -43,7 +46,7 @@ function main()
         print_r($response);
 
         // Crear un Usuario
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             '/users', 
             array(
@@ -58,7 +61,7 @@ function main()
         $tmp_id_user = $id_user;
 
         // Actualizar un usuario
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             "/users/$id_user", 
             array("name"=> 'Rey Misterio Jr.'), 
@@ -68,7 +71,7 @@ function main()
         print_r($response);
         
         // Obtener token de sesión
-        $token = \Sync\auth(
+        $token = Sync::auth(
             array("api_key" => API_KEY),
             array("id_user"=>$id_user)
         );
@@ -77,7 +80,7 @@ function main()
         $tokenCode = $token['token'];
         
         // Verificar token de sesión
-        $response = \Sync\run(
+        $response = Sync::run(
             array(),
             "/sessions/$tokenCode/verify", 
             null,
@@ -87,7 +90,7 @@ function main()
         prettyJson($response);
 
         // Consultar catálogos
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/catalogues/sites", 
             array("limit"=>1),
@@ -98,7 +101,7 @@ function main()
 
         // Crear credenciales normal
         $payload = array("id_site"=>"5da784f1f9de2a06483abec1");
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/catalogues/sites", 
             $payload,
@@ -109,7 +112,7 @@ function main()
         $credentials[$site->credentials[0]->name] = 'ACM010101ABC';
         $credentials[$site->credentials[1]->name] = 'test';
         $payload['credentials'] = $credentials;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/credentials", 
             $payload,
@@ -121,7 +124,7 @@ function main()
         sleep(30);
 
         // Consultar credenciales
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/credentials", 
             null,
@@ -132,7 +135,7 @@ function main()
         
         // Consulta status credenciales
         $id_job = $satCredential->id_job;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/jobs/$id_job/status", 
             null,
@@ -142,7 +145,7 @@ function main()
         prettyJson($response);
 
         // Consultar Cuentas
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/accounts", 
             array("id_credential"=>$satCredential->id_credential),
@@ -152,7 +155,7 @@ function main()
         prettyJson($response);
 
         // Consultar Transacciones
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/transactions", 
             array(
@@ -165,7 +168,7 @@ function main()
         prettyJson($response);
 
         // Consultar el número de transacciones
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/transactions/count", 
             array("id_credential"=>$satCredential->id_credential),
@@ -175,7 +178,7 @@ function main()
         prettyJson($response);
 
         // Crear Webhook
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             "/webhooks", 
             array(
@@ -189,7 +192,7 @@ function main()
         $id_webhook = $response->id_webhook;
         
         // Consultar Webhook
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             "/webhooks", 
             null,
@@ -200,7 +203,7 @@ function main()
         sleep(150);
 
         // Eliminar Webhook
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             "/webhooks/$id_webhook", 
             null,
@@ -210,7 +213,7 @@ function main()
         prettyJson($response);
         
         // Consultar Archivos adjuntos
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/attachments", 
             array(
@@ -225,7 +228,7 @@ function main()
         // Obtener archivo adjunto
         $attachment = $response[0];
         $attachmentUrl = $attachment->url;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             $attachmentUrl, 
             null,
@@ -235,7 +238,7 @@ function main()
         echo $response;
 
         // Obtener info extra
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             $attachment->url."/extra", 
             null,
@@ -247,7 +250,7 @@ function main()
         # --------------------- TWOFA --------------------------- #
         // Crear credenciales twofa
         $payload = array("id_site"=>"56cf5728784806f72b8b4569");
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/catalogues/sites", 
             $payload,
@@ -259,7 +262,7 @@ function main()
         $credentials[$site->credentials[0]->name] = 'test';
         $credentials[$site->credentials[1]->name] = 'test';
         $payload['credentials'] = $credentials;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/credentials", 
             $payload,
@@ -271,7 +274,7 @@ function main()
         sleep(20);
 
         $id_job = $twofaCredential->id_job;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/jobs/$id_job/status", 
             null,
@@ -289,7 +292,7 @@ function main()
         // Manda TWOFA
         $twofaToken = array("twofa" => array());
         $twofaToken["twofa"][$response[2]->twofa[0]->name] = "123456";
-        $twofa = \Sync\run(
+        $twofa = Sync::run(
             $token,
             "/jobs/$id_job/twofa", 
             $twofaToken, 
@@ -298,7 +301,7 @@ function main()
         echo "->Manda TWOFA".PHP_EOL;
         prettyJson($twofa);
 
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/jobs/$id_job/status", 
             null,
@@ -311,7 +314,7 @@ function main()
 
         // Eliminar credencial
         $id_credential = $satCredential->id_credential;
-        $response = \Sync\run(
+        $response = Sync::run(
             $token,
             "/credentials/$id_credential", 
             null,
@@ -321,7 +324,7 @@ function main()
         prettyJson($response);
 
         // Eliminar un usuario
-        $response = \Sync\run(
+        $response = Sync::run(
             array("api_key" => API_KEY),
             "/users/$id_user", 
             array(), 
@@ -334,7 +337,7 @@ function main()
         echo "------ TEST ERROR---------".PHP_EOL;
         if ($tmp_id_user) {
             // Eliminar un usuario
-            $response = \Sync\run(
+            $response = Sync::run(
                 array("api_key" => API_KEY),
                 "/users/$tmp_id_user", 
                 array(), 
