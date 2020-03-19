@@ -169,17 +169,38 @@ La ventaja principal es que te permite recibir las últimas actualizaciones de c
 Para fines prácticos de desarrollo usaremos el servicio de [ngrok][ngrok], el cual nos permite crear URLs públicas para exponer nuestro servidor local a través de internet.
 Puedes consultar cómo instalarlo en su [página de descargas](https://ngrok.com/download).
 
-Ahora crearemos un servidor sencillo con [Nodejs][nodejs] y [Expressjs][express], creando un archivo al que llamaremos `server.js` e incluiremos el siguiente código:
+Ahora crearemos un servidor sencillo con [PHP](https://www.php.net/) y [Slim](https://www.slimframework.com/). 
+
+> Cabe mencionar que se hace uso de estas tecnologías con fines ilustrativos y el desarrollador es libre de implementar las que crea más convenientes. 
+
+Creando un archivo al que llamaremos `server.php` e incluiremos el siguiente código:
 ```php
-// Some code that runs a server on port 3000
+<?php
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$app = AppFactory::create();
+
+$app->get('/webhook', function (Request $request, Response $response, $args) {
+    $response->getBody()->write("Hello from my webhook!");
+    return $response;
+});
+
+$app->run();
 ```
 
-Habiendo terminado lo anterior, instalamos express con el comando `npm i express` y luego corremos nuestro servidor con el comando `node index.js`
+Habiendo terminado lo anterior, instalamos slim con el comando `composer require slim/slim slim/psr7` y luego corremos nuestro servidor con el comando `php -S server.js`
+
+> **Warning:** The built-in web server was designed to aid application development. It may also be useful for testing purposes or for application demonstrations that are run in controlled environments. It is not intended to be a full-featured web server. It should not be used on a public network.
 
 Por último ejecutamos ngrok con el comando: `<path-to>/ngrok http 3000` y tendremos nuestro servidor listo escuchando por actualizaciones del webhook.
 
 La URL que nos proporcione ngrok es la misma que tendrás que mandar cuando creas un webhook como en este [ejemplo](#crear-webhook).
 
+> **Nota**: ngrok solo debe ser usado durante el desarrollo y no se recomienda usarlo de esta forma en producción.
 
 ### Sync Widget
 
