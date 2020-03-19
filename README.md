@@ -1,6 +1,6 @@
 <center>
 
-![Paybook-logo][logo]
+![Sync-Paybook-logo][logo]
 
 </center>
 
@@ -12,10 +12,14 @@
 
 - [Instalación](#instalación)   
 - [Requerimientos](#requerimientos)    
+- [Modelo de información](#modelo-de-información)    
 - [Implementación](#implementación)    
+  - [La librería](#la-librería)
+  - [Implementación de un Webhook ](#implementación-de-un-Webhook )
+  - [Sync Widget](#sync-widget)
 - [Autenticación](#autenticación)        
-  - [Obtener un Token de sesión](#obtener-un-token-de-sesión)        
-  - [Verificar Token de sesión](#verificar-token)        
+  - [Obtener un Token de sesión:](#obtener-un-token-de-sesión)        
+  - [Flujo de Información](#flujo-de-información) 
 - [Recursos y Ejemplos](#recursos-y-ejemplos)        
   - [Usuarios](#usuarios)            
     - [Consultar usuarios](#consultar-usuarios) 
@@ -26,9 +30,9 @@
   - [Catálogos](#catálogos)            
     - [Catálogos de Instituciones](#catálogos-de-instituciones)        
   - [Credenciales](#credenciales)            
-    - [Crear credenciales normal](#crear-credenciales-normal)            
-    - [Consultar credenciales](#consultar-credenciales)            
-    - [Crear credenciales TWOFA](#crear-credenciales-twofa)            
+    - [Credenciales normales](#credenciales-normales) 
+    - [Crear credenciales TWOFA](#credenciales-twofa)
+    - [Consultar credenciales](#consultar-credenciales)          
     - [Eliminar una credencial](#eliminar-una-credencial)            
     - [Consultar historial de cambios de la credencial](#consultar-historial-de-cambios-de-la-credencial)        
   - [Cuentas](#cuentas)            
@@ -62,80 +66,190 @@
   ```
   api_key = 7767a4a04f990e9231bafc949e8ca08a
   ```
-  Este API key lo podemos visualizar como la contraseña o llave de acceso a los servicios de [Paybook Sync]. Únicamente a través de ella podremos consultar la información de las instituciones que sincronicemos.
+ Al crear tu cuenta se te proporcionan dos API Keys: ***Producción*** & ***Sandbox***. Las cuales tienen el mismo proposito, ambas nos permiten implementar **Paybook Sync**, pero ***Sandbox*** nos permite hacerlo sin la necesidad de tener credenciales reales de bancos o el SAT.
+  
+  Este API key lo podemos visualizar como la contraseña o llave de acceso a los servicios de [Paybook Sync]. Solamente a través de ella podremos empezar a interactuar con las instituciones que sincronicemos.
+
+  > ***Nota:*** Pasar de una API key a otra es tan sensillo como escribir la nueva API key correspondiente.
+
+2.**Webhook**
+
+_Opcional_ pero altamente recomendable para lograr una integración completa de las funcionalidades de Paybook Sync.
+
+## Modelo de información
+
+El modelo de información de Paybook Sync es bastante sencillo.
+Prácticamente podemos visualizar al API key como el elemento raíz del modelo, del cual se desglosan los usuarios, pero entendamos como usuarios a aquellas entidades (personas o empresas) a las cuales se les desea sincronizar las instituciones financieras que el servicio de Paybook Sync facilita, podemos apreciarlo gráficamente en este diagrama:
+
+![sync-model-image][sync-model-image]
+
+> Hay que mencionar la diferencia entre un usuario de Paybook Sync (usted, el developer) y un usuario del API key: Por cada usuario de Paybook Sync, hay un API key y cada API key puede tener N usuarios.
+
+
+### Users ([Usuarios](#usuarios))
+Los usuarios son segmentaciones lógicas para los usuarios finales. Una mejor práctica es registrar usuarios para tener su información agrupada y control en ambos extremos. 
+
+### Catalogs/Sites ([Catálogos](#catálogos))
+Los catálogos son colecciones de endpoints que son importantes para la clasificación de otros endpoints. Dentro de estos se encuentran los sitios que nos permite consultar los sitios financieros disponibles para sincronizar a través de Paybook Sync.
+
+### Credentials ([Credenciales](#credenciales))
+Las credenciales se refieren a la información de terceras personas que se necesita para autorizar el acceso a un sitio de terceros. Las credenciales se encriptan al momento de introducirse y no están disponibles en ningún endpoint. La información que se extrae de este endpoint, será sólo complementaria.
+>Es necesario tener al menos un usuario registrado para crear credenciales.
+
+### Accounts ([Cuentas](#cuentas))
+Las cuentas son repositorios de transacciones de usuarios finales, que normalmente se clasifican por alguna característica como tipo y/o número de cuenta. La cuenta y la información de las transacciones pueden recuperarse desde sitios de terceros y se actualizan hasta tres veces al día.
+
+### Transactions ([Transacciones](#transacciones))
+Las transacciones son los movimientos financieros que están relacionados con una cuenta, y reflejan el ingreso o egreso que el usuario final tiene en determinado sitio. La cantidad de información histórica que Sync puede recuperar, varía dependiendo de la fuente pero, por lo general, estarán disponibles las transacciones de 60 días.
+
+### Attachments ([Archivos Adjuntos](#archivos-adjuntos-attachments))
+Los archivos adjuntos son archivos que están relacionados con las cuentas o las transacciones. La disponibilidad y el tipo de archivo adjunto varía de acuerdo a la fuente.
+
+
+#### En Resumen:
+A partir de los usuarios podemos crear credenciales, las cuales son únicas por cada usuario e institución.
+Una vez creada una credencial automáticamente se crea una cuenta correspondiente, esto permite manejar fácilmente diferentes cuentas de un mismo usuario de una misma institución.
+
+Por último pero no menos importante, se encuentran las transacciones que dependen de su respectiva cuenta, algunas transacciones vienen con un documento el cual llamaremos Attachments o mejor dicho _“documentos adjuntos”_, los cuales son el último recurso en el modelo de de información de Paybook Sync.
+
 ## Implementación
 
-La librería incluye los metodos:
-1. `Sync.auth()`
-  >_Nota: Para realizar la autenticación es necesario tener creado un usuario, de donde se obtiene el **id_user**, vease este [ejemplo](#crear-un-usuario)._
-2. `Sync.run()` _Vease el apartado de [recursos](#recursos-y-ejemplos) disponibles_
-
-
-Por ejemplo:
+### La librería
+Incluye la librería y declara tu API Key.
 ```php
-$source_dir = __DIR__.'/../src/';
-require $source_dir.'sync.php';
-define('API_KEY', 'tu_api_key');
-
-
-// Crear una sesión para un usuario
-$token = \Sync\auth(
-  array("api_key" => API_KEY), // Tu API KEY
-  array("id_user"=>$id_user) // ID de usuario
-);
-
-$response = \Sync\run(
-  $token, // Autenticación
-  "/credentials",  // Recurso
-  array(), // Parametros (puede ser null)
-  'GET' // Método HTTP
-);
-// Consumir un recurso de Sync
+require __DIR__.'./vendor/autoload.php';
+define('API_KEY', '<TU_API_KEY>');
+use Paybook\Sync\Sync;
 ```
-**_¡Importante!:_** No escribas tu API KEY directamente en tu código o en texto plano, ya que es una mala práctica de seguridad.
+> **_¡Importante!:_** No escribas tu API KEY directamente en tu código o en texto plano, ya que es una mala práctica de seguridad.
+
+La librería incluye los métodos:
+* `Sync.auth()`
+```php
+// Crear una sesión para un usuario
+$token = Sync::auth(
+    array("api_key" => API_KEY), // Tu API KEY
+    array("id_user"=>$id_user) // ID de usuario
+);
+```
+  >_**Nota**: Para realizar la autenticación es necesario tener creado un usuario, de donde se obtiene el **id_user**, vease este [ejemplo](#crear-un-usuario)._
+* `Sync.run()`
+
+```php
+// Consumir un recurso de Sync
+$response = Sync::run(
+    $token, // Autenticación
+    "/credentials", // Recurso
+    null, // Parametros
+    'GET' // Método HTTP
+);
+```
+
+Y hace uso los siguientes métodos de HTTP:
+
+Metodo | Acción
+---| ---|
+GET | Consultar
+POST | Crear
+PUT |  Actualizar
+DELETE | Eliminar
+
+Dependiendo del recurso y la acción a realizar, será el método de la librería, el método de HTTP y el elemento de autenticación (se explica en la sección de [autenticación](#autenticación)) a usar.
+
+>Puedes ver más acerca de cada uno en [recursos y ejemplos](#recursos-y-ejemplos).
+
+### Implementación de un Webhook 
+
+Un **Webhook** es una devolución de llamada HTTP a un URL especificado. Ellos se activan cada vez que se actualizan los datos de sincronización para ayudarte a mantenerte al día con los últimos cambios en la información.
+
+La ventaja principal es que te permite recibir las últimas actualizaciones de credenciales, transacciones y attachments directamente en tu aplicación sin necesidad de estar preguntando constantemente por ellas.
+
+![alt](https://media.giphy.com/media/l2JehPbx5eIFLqAms/giphy.gif)
+
+Para fines prácticos de desarrollo usaremos el servicio de [ngrok][ngrok], el cual nos permite crear URLs públicas para exponer nuestro servidor local a través de internet.
+Puedes consultar cómo instalarlo en su [página de descargas](https://ngrok.com/download).
+
+Ahora crearemos un servidor sencillo con [Nodejs][nodejs] y [Expressjs][express], creando un archivo al que llamaremos `server.js` e incluiremos el siguiente código:
+```php
+// Some code that runs a server on port 3000
+```
+
+Habiendo terminado lo anterior, instalamos express con el comando `npm i express` y luego corremos nuestro servidor con el comando `node index.js`
+
+Por último ejecutamos ngrok con el comando: `<path-to>/ngrok http 3000` y tendremos nuestro servidor listo escuchando por actualizaciones del webhook.
+
+La URL que nos proporcione ngrok es la misma que tendrás que mandar cuando creas un webhook como en este [ejemplo](#crear-webhook).
+
+
+### Sync Widget
+
+El widget de Sync se puede usar para **crear**, **actualizar** y **activar** la sincronización de credenciales de forma sencilla con pocas líneas de código desde tu ***Front-end***. Visita el [repositorio oficial][sync-widget-repo] para implementarlo, ampliamente recomendado.
+
+<figure class="image">
+  <img src="https://drive.google.com/uc?export=view&id=1Ll-fQQodIEnlx9ys0U4hn67y8w_EjNlX"/>
+</figure>
+
+La ventaja principal es que te brinda una poderosa interfaz que te permite ahorrar pasos en la implementación. 
 
 ## Autenticación
 
-### Obtener un Token de sesión
+En el API de Paybook Sync hay dos elementos de autenticación: **_API KEY_** & **_TOKEN_**.
+
+- **API KEY:**  Es la llave maestra que se le otorga a un desarrollador cuando se registra en Paybook Sync, como se muestra en el apartado de [requerimientos](#requerimientos).
+
+- **Token:** El token es una llave de operación volátil, caduca luego de cinco minutos de inactividad, su alcance se limita a nivel User y fue diseñada para realizar operaciones a nivel FrontEnd. Va ligado directamente a un usuario y únicamente puede consultar o actualizar la información de éste (a diferencia de la API key con la que puedes consultar todo). Prácticamente es una combinación de tu API key y un usuario.
+
+> Por razones de seguridad se recomienda ampliamente utilizar el Token ya que así limitas el acceso de información solamente al usuario correspondiente.
+
+Todas las peticiones al API de Paybook Sync deben ir autenticadas, dependerá del recurso con el que se va a operar la llave de autenticación a utilizar.
+
+Recurso | Auth | 
+---------|----------|
+ Usuarios | API KEY
+ Webhooks | API KEY
+ Catalogs | Token
+ Credentials | Token
+ Accounts | Token
+ Transactions | Token
+ Attachments | Token
+
+### Obtener un Token de sesión:
 ```php
-$token = \Sync\auth(
-    array("api_key" => API_KEY),
-    array("id_user"=>$id_user)
+$token = Sync::auth(
+  array("api_key" => API_KEY), // Tu API KEY
+  array("id_user"=>$id_user) // ID de usuario
 );
-$tokenCode = $token['token'];
 ```
 #### Respuesta:
-```json
-{ "token": "d5b33dcf996ac34fd2fa56782d72bff6"}
-```
-
-### Verificar Token
 ```php
-$response = \Sync\run(
-  array(),
-  "/sessions/$tokenCode/verify", 
-  null,
-  'GET'
-);
+  print_r($token);
+  // #Imprime: { token: "d5b33dcf996ac34fd2fa56782d72bff6"}
 ```
+>Puedes ver más acerca de cada uno en [recursos y ejemplos](#recursos-y-ejemplos).
 
-#### Respuesta:
-```json
-{
-  "rid": "307ebb4c-c97e-4ecb-97b1-56806f86f815",
-  "code": 200,
-  "errors": null,
-  "status": true,
-  "message": null,
-  "response": true
-}
-```
+## Flujo de Información
+
+En este apartado veremos un ejemplo del flujo ideal para obtener la información desde el API de Paybook Sync, aunque las posibilidades son muchas, este es el caso ideal para hacernos con la información.
+
+![data-flow-img][data-flow-img]
+
+> Para este punto, si decidiste hacer uso del [Sync Widget](#sync-widget), te habrás ahorrado los pasos 2, 3 y 4.
+
+_Los pasos en el diagrama son los siguientes:_
+
+1. Crea un usuario. ([ver ejemplo](#crear-un-usuario))
+2. Consulta los sitios y selecciona el sitio que deseas sincronizar. ([ver ejemplo](#catálogos-de-instituciones))
+3. Crea una credencial para ese usuario y sitio. ([ver ejemplo](#crear-credenciales-normal))
+4. Monitorea el estatus de la nueva credencial. ([ver ejemplo](#consultar-credenciales))
+5. Crea un webhook nuevo, indica un Endpoint en tu aplicación donde esperas las actualizaciones). ([ver ejemplo](#crear-webhook))
+6. Espera y procesa las actualizaciones que recibas de Sync.
+7. Consulta la nueva información disponible en el recurso respectivo.
+
 ## Recursos y Ejemplos
 
 Puedes consultar más información acerca de los parametros de cada recurso en la [documentación oficial de paybook][sync-doc-endpoint].
 
 ### Usuarios
-Los usuarios son segmentaciones lógicas para los usuarios finales. Una mejor práctica es registrar usuarios para tener su información agrupada y control en ambos extremos. Es necesario tener al menos un usuario registrado para crear credenciales.
 
 <table>
 <thead>
@@ -199,7 +313,7 @@ Los usuarios son segmentaciones lógicas para los usuarios finales. Una mejor pr
 
 #### Consultar usuarios
 ```php
-$response = \Sync\run(
+$response = Sync::run(
     array("api_key" => SYNC_API_KEY),
     '/users', 
     array(), 
@@ -228,7 +342,7 @@ Devuelve:
 
 #### Consultar un usuario en especifico
 ```php
- $response = \Sync\run(
+ $response = Sync::run(
   array("api_key" => API_KEY),
   '/users', 
   array("id_user"=>'5df859c4a7a6442757726ef4'), 
@@ -249,7 +363,7 @@ Devuelve:
 ```
 #### Crear un Usuario
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   '/users', 
   array(
@@ -273,11 +387,11 @@ Devuelve:
 #### Actualizar un Usuario
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   "/users/$id_user", 
   array(
-      "name"=> 'Rey Misterio Jr.'
+      "name"=> 'El Santo Jr.'
   ), 
   'PUT'
 );
@@ -297,7 +411,7 @@ Devuelve:
 >_**Nota:** Esto eliminará toda la información del usuario._
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   "/users/$id_user", 
   array(), 
@@ -317,7 +431,7 @@ Devuelve:
 ```
 
 ### Catálogos
-Los catálogos son colecciones de endpoints que son importantes para la clasificación de otros endpoints.
+
 
 <table>
 <thead>
@@ -405,7 +519,7 @@ Paybook Sync proporciona un catálogo de las instituciones que podemos sincroniz
 
 ```php
 // Consultar catálogos
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/catalogues/sites", 
   null,
@@ -516,7 +630,6 @@ Devuelve:
 ```
 
 ### Credenciales
-Las credenciales se refieren a la información de terceras personas que se necesita para autorizar el acceso a un sitio de terceros. Las credenciales se encriptan al momento de introducirse y no están disponibles en ningún endpoint. La información que se extrae de este endpoint, será sólo complementaria.
 
 <table>
 <thead>
@@ -583,23 +696,55 @@ Las credenciales se refieren a la información de terceras personas que se neces
 
 Cada institución tiene sus propias credenciales, algunas instituciones requieren un paso de seguridad _"Two factor authentication"_ o _"TWOFA"_; Los siguientes ejemplos cubren ambos casos.
 
-#### Crear credenciales normal
+#### Credenciales normales
 **_Normal_**: Credenciales que sólo requieren **_user_** y **_password_**.
 
+1. ##### Crear credenciales normal
 ```php
+  // Consultar catálogos
 $payload = array("id_site"=>"5da784f1f9de2a06483abec1");
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/catalogues/sites", 
   $payload,
   'GET'
 );
 $site = $response[0];
+print_r($site)
+/* Algo como esto:
+{
+    "id_site": "56cf5728784806f72b8b4568",
+    .
+    .
+    .
+    "credentials": [
+        {
+            "name": "username",
+            "type": "text",
+            "label": "Username",
+            "required": true,
+            "username": true,
+            "token": false,
+            "validation": null
+        },
+        {
+            "name": "password",
+            "type": "password",
+            "label": "Password",
+            "required": true,
+            "username": false,
+            "token": false,
+            "validation": null
+        }
+    ],
+    "endpoint": "/v1/credentials"
+}
+*/
 $credentials = array();
 $credentials[$site->credentials[0]->name] = 'ACM010101ABC';
 $credentials[$site->credentials[1]->name] = 'test';
 $payload['credentials'] = $credentials;
-$normalCredential = \Sync\run(
+$normalCredential = Sync::run(
   $token,
   "/credentials", 
   $payload,
@@ -620,10 +765,10 @@ Devuelve:
 }
 ```
 
-#### Consultar credenciales
+2. ##### Monitoreo del estado de la credencial
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/credentials", 
   null,
@@ -657,13 +802,13 @@ Devuelve:
    }
 ]
 ```
-#### Crear credenciales TWOFA
+#### Credenciales TWOFA
 
 1. ##### Consulta el sitio Twofa del catálogo
 ```php
 // Consultar catálogos
 $payload = array("id_site"=>"56cf5728784806f72b8b4569");
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/catalogues/sites", 
   $payload,
@@ -678,7 +823,7 @@ $credentials = array();
 $credentials[$twofaSite->credentials[0]->name] = 'test';
 $credentials[$twofaSite->credentials[1]->name] = 'test';
 $payload['credentials'] = $credentials;
-$twofaCredential = \Sync\run(
+$twofaCredential = Sync::run(
   $token,
   "/credentials", 
   $payload,
@@ -701,7 +846,7 @@ $twofaCredential = \Sync\run(
 ```php
 // Consulta Status Credenciales twofa
 $id_job = $twofaCredential->id_job;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/jobs/$id_job/status", 
   null,
@@ -738,7 +883,7 @@ if($response[sizeof($response)->code] == 410) {
 // Manda TWOFA
 $twofaToken = array("twofa" => array());
 $twofaToken["twofa"][$response[2]->twofa[0]->name] = "123456";
-$twofa = \Sync\run(
+$twofa = Sync::run(
   $token,
   "/jobs/$id_job/twofa", 
   $twofaToken, 
@@ -758,7 +903,7 @@ $twofa = \Sync\run(
 5. ##### Consulta nuevamente el status
 ```php
 $id_job = $credential->id_job;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/jobs/$id_job/status", 
   null,
@@ -793,10 +938,47 @@ $response = \Sync\run(
 */
 ```
 
+#### Consultar credenciales
+```php
+$response = Sync::run(
+  $token,
+  "/credentials", 
+  null,
+  'GET'
+);
+```
+Devuelve:
+```json
+[
+   {
+      "id_credential":"5e17c432d7288d358a039141",
+      "id_user":"5e17c430b021255889294af7",
+      "id_environment":"574894bf7848066d138b4570",
+      "id_external":"",
+      "id_site":"56cf5728784806f72b8b4568",
+      "id_site_organization":"56cf4ff5784806152c8b4567",
+      "id_site_organization_type":"56cf4f5b784806cf028b4568",
+      "id_organization":"56cf4ff5784806152c8b4567",
+      "is_authorized":1,
+      "is_locked":0,
+      "is_twofa":0,
+      "can_sync":0,
+      "ready_in":86377,
+      "username":"t**t",
+      "code":200,
+      "keywords":null,
+      "dt_authorized":1578615866,
+      "dt_execute":1578615858,
+      "dt_ready":1578702266,
+      "dt_refresh":null
+   }
+]
+```
+
 #### Eliminar una credencial
 ```php
 $id_credential = $credential->id_credential;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/credentials/$id_credential", 
   null,
@@ -819,7 +1001,7 @@ Devuelve:
 ```php
 // Despues de crear una credencial (como en ejemplos anteriores)
 $id_job = $twofaCredential->id_job;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/jobs/$id_job/status", 
   null,
@@ -847,9 +1029,6 @@ Devuelve:
 > Puedes consultar el significado de cada código [aquí][sync-doc-code.response].
 
 ### Cuentas
-
-Las cuentas son repositorios de transacciones de usuarios finales, que normalmente se clasifican por alguna característica como tipo y/o número de cuenta. La cuenta y la información de las transacciones pueden recuperarse desde sitios de terceros y se actualizan hasta tres veces al día.
-
 <table>
 <thead>
   <tr>
@@ -897,7 +1076,7 @@ Las cuentas son repositorios de transacciones de usuarios finales, que normalmen
 #### Consulta las cuentas de un usuario específico
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/accounts", 
   array("id_credential"=>$id_credential),
@@ -930,8 +1109,6 @@ Devuelve:
 ```
 
 ### Transacciones
-Las transacciones son los movimientos financieros que están relacionados con una cuenta, y reflejan el ingreso o egreso que el usuario final tiene en determinado sitio. La cantidad de información histórica que Sync puede recuperar, varía dependiendo de la fuente pero, por lo general, estarán disponibles las transacciones de 60 días.
-
 <table>
 <thead>
   <tr>
@@ -1009,7 +1186,7 @@ Las transacciones son los movimientos financieros que están relacionados con un
 
 #### Consulta las transacciones de un usuario específico
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/transactions", 
   array(
@@ -1086,7 +1263,7 @@ Devuelve:
 #### Consulta el número de transacciones dados algunos parámetros de búsqueda
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/transactions/count", 
   array("id_credential"=>$id_credential),
@@ -1102,8 +1279,6 @@ Devuelve:
 ```
 
 ### Webhooks
-Un Webhook es una devolución de llamada HTTP a un URL especificado. Ellos se activan cada vez que se actualizan los datos de sincronización para ayudarle a mantenerse al día con los últimos cambios.
-
 <table>
 <thead>
   <tr>
@@ -1162,11 +1337,11 @@ Un Webhook es una devolución de llamada HTTP a un URL especificado. Ellos se ac
 #### Crear Webhook
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   "/webhooks", 
   array(
-      "url"=>WEBHOOK_ENDPOINT, 
+      "url"=>'http://mydomain.ngrok.io/webhook'; // Tu endpoint donde recibiras la devolución de llamada, 
       "events"=>array("credential_create","credential_update","refresh")
   ),
   'POST'
@@ -1192,7 +1367,7 @@ Devuelve:
 #### Consultar Webhooks
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   "/webhooks", 
   null,
@@ -1224,14 +1399,13 @@ Devuelve:
 
 ```php
 $id_webhook = $response->id_webhook;
-$response = \Sync\run(
+$response = Sync::run(
   array("api_key" => API_KEY),
   "/webhooks/$id_webhook", 
   null,
   'DELETE'
 );
 ```
-
 Devuelve:
 ```json
 {
@@ -1245,9 +1419,6 @@ Devuelve:
 ```
 
 ### Archivos adjuntos (Attachments)
-
-Los archivos adjuntos son archivos que están relacionados con las cuentas o las transacciones. La disponibilidad y el tipo de archivo adjunto varía de acuerdo a la fuente.
-
 <table>
 <thead>
   <tr>
@@ -1340,7 +1511,7 @@ Los archivos adjuntos son archivos que están relacionados con las cuentas o las
 #### Consulta los archivos adjuntos de un usuario específico
 
 ```php
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   "/attachments", 
   array("id_credential"=>$id_credential),
@@ -1405,7 +1576,7 @@ Devuelve:
 ```php
 $attachment = $response[0];
 $attachmentUrl = $attachment->url;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   $attachmentUrl, 
   null,
@@ -1431,7 +1602,7 @@ Devuelve:
 ```php
 $attachment = $response[0];
 $attachmentUrl = $attachment->url;
-$response = \Sync\run(
+$response = Sync::run(
   $token,
   $attachmentUrl."/extra", 
   null,
@@ -1542,7 +1713,7 @@ Devuelve:
 1. [Documentación oficial][sync-doc-intro] de Paybook Sync.
 2. [Parametros para cada recurso][sync-doc-endpoint].
 2. [Códigos de respuesta y su significado][sync-doc-code.response].
-2. [Consumiendo el API REST de Sync vía Postman paso a paso](https://github.com/Paybook/sync-rest#api_key). Ampliamente recomendado para entender la estructura de una cuenta de Paybook Sync.
+2. [Consumiendo el API REST de Sync vía Postman paso a paso][sync-postman-doc]. Ampliamente recomendado para entender la estructura de una cuenta de Paybook Sync.
 
 ## Comentarios y aportes
 
@@ -1555,6 +1726,12 @@ _Made with :blue_heart: by Paybook family._
 
 [Paybook Sync]: <https://www.paybook.com/sync/es/>
 [sync-doc-intro]: <https://www.paybook.com/sync/es/docs/intro>
-[sync-doc-endpoint]: <https://www.paybook.com/sync/es/docs#es&endpoints.users>
-[sync-doc-code.response]: <https://www.paybook.com/sync/es/docs#es&response.code>
-[logo]: ./../images/syncLogo.svg
+[sync-doc-endpoint]: <https://www.paybook.com/w/es/sync/site/docs/api?topics=endpoints>
+[sync-doc-code.response]: <https://www.paybook.com/w/es/sync/site/docs/api?topics=response&topics=code>
+[sync-postman-doc]: <https://github.com/Paybook/sync-rest>
+[sync-widget-repo]: <https://github.com/Paybook/sync-widget>
+
+[ngrok]: <https://ngrok.com/>
+[logo]: <https://raw.githubusercontent.com/Paybook/sync-php/master/images/syncLogo.svg?sanitize=true>
+[sync-model-image]: <https://raw.githubusercontent.com/Paybook/sync-php/master/images/resourceModel.svg?sanitize=true>
+[data-flow-img]: <https://raw.githubusercontent.com/Paybook/sync-php/master/images/dataFlow.svg?sanitize=true>
